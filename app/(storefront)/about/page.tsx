@@ -7,16 +7,16 @@ import { APP_NAME, ANIMATION_DELAYS } from "@/lib/constants";
 export default function AboutPage() {
   const companyInfoBlocks = [
     {
-      title: "Mission",
-      body: "Make shopping straightforward — clarity first, noise never.",
+      title: "Our Mission",
+      body: "To provide our customers with exceptional products that enhance their daily lives. We believe in quality over quantity and customer satisfaction above all else.",
     },
     {
-      title: "Vision",
-      body: "A storefront people trust: sharp visuals, honest catalog, no gimmicks.",
+      title: "Our Vision",
+      body: "To become your trusted destination for premium products. We're building a shopping experience that's transparent, reliable, and always puts you first.",
     },
     {
-      title: "Values",
-      body: "Quality, transparency, and respect for your time.",
+      title: "Our Values",
+      body: "Quality craftsmanship, honest pricing, and outstanding service. We respect your time and trust, which is why we carefully curate every product in our catalog.",
     },
   ];
 
@@ -24,12 +24,17 @@ export default function AboutPage() {
     <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
       {/* Page header */}
       <div className="mx-auto max-w-2xl text-center">
-        <p className="yh-animate-up text-xs font-semibold uppercase tracking-[0.35em] text-neutral-500">
-          About
+        <p className="yh-animate-up text-xs font-semibold uppercase tracking-[0.35em] text-teal-600">
+          About Us
         </p>
-        <h1 className="yh-animate-up yh-delay-1 mt-4 text-4xl font-black tracking-tight text-neutral-950">
-          {APP_NAME}
+        <h1 className="yh-animate-up yh-delay-1 mt-4 text-4xl font-black tracking-tight text-neutral-950 sm:text-5xl">
+          Welcome to {APP_NAME}
         </h1>
+        <p className="yh-animate-up yh-delay-2 mx-auto mt-6 max-w-xl text-base leading-relaxed text-neutral-600">
+          We're passionate about bringing you the best products at great prices.
+          Our team works hard to ensure every item meets our high standards for
+          quality and value.
+        </p>
       </div>
 
       {/* Info cards grid */}
@@ -53,4 +58,3 @@ export default function AboutPage() {
     </div>
   );
 }
-

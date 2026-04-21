@@ -37,7 +37,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         <p className="text-xl font-black text-teal-600">${product.price}</p>
         <div className="pt-1">
           <Link
-            href={`/products/${product.id}`}
+            href={`/products/${product._id}`}
             className="block rounded-lg bg-neutral-950 py-2.5 text-center text-sm font-semibold text-white transition duration-200 hover:bg-teal-600"
           >
             View details
@@ -47,4 +47,3 @@ export default function ProductCard({ product }: ProductCardProps) {
     </article>
   );
 }
-

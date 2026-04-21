@@ -38,18 +38,18 @@ function ProductsGridView() {
   const updateFilterParam = useCallback(
     (filterType: "category" | "brand", filterValue: string) => {
       const updatedParams = new URLSearchParams(searchParams.toString());
-      
+
       if (filterValue) {
         updatedParams.set(filterType, filterValue);
       } else {
         updatedParams.delete(filterType);
       }
-      
+
       const queryString = updatedParams.toString();
       const newUrl = queryString ? `${pathname}?${queryString}` : pathname;
       router.push(newUrl, { scroll: false });
     },
-    [pathname, router, searchParams]
+    [pathname, router, searchParams],
   );
 
   /**
@@ -57,8 +57,8 @@ function ProductsGridView() {
    */
   useEffect(() => {
     setLoadError(null);
-    
-    fetch("https://dummyjson.com/products?limit=100")
+
+    fetch("/api/products")
       .then((response) => {
         if (!response.ok) {
           throw new Error("Failed to load products from server");
@@ -78,16 +78,17 @@ function ProductsGridView() {
   // Extract unique categories and brands from products
   const availableCategories = useMemo(
     () => [...new Set(products.map((product) => product.category))].sort(),
-    [products]
+    [products],
   );
-  
+
   const availableBrands = useMemo(
-    () => [
-      ...new Set(
-        products.map((product) => product.brand).filter(Boolean) as string[]
-      ),
-    ].sort(),
-    [products]
+    () =>
+      [
+        ...new Set(
+          products.map((product) => product.brand).filter(Boolean) as string[],
+        ),
+      ].sort(),
+    [products],
   );
 
   /**
@@ -95,15 +96,15 @@ function ProductsGridView() {
    */
   const filteredProducts = useMemo(() => {
     let result = products;
-    
+
     if (activeCategory) {
       result = result.filter((product) => product.category === activeCategory);
     }
-    
+
     if (activeBrand) {
       result = result.filter((product) => product.brand === activeBrand);
     }
-    
+
     return result;
   }, [products, activeCategory, activeBrand]);
 
@@ -210,8 +211,8 @@ function ProductsGridView() {
         products found
         {hasActiveFilters && (
           <span className="ml-2 text-neutral-400">
-            (category: {activeCategory || "any"} · brand:{" "}
-            {activeBrand || "any"})
+            (category: {activeCategory || "any"} · brand: {activeBrand || "any"}
+            )
           </span>
         )}
       </p>
@@ -220,7 +221,7 @@ function ProductsGridView() {
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {filteredProducts.map((product, index) => (
           <div
-            key={product.id}
+            key={product._id}
             className={`yh-animate-up ${
               index % 3 === 0
                 ? "yh-delay-1"
@@ -261,4 +262,3 @@ export default function ProductsPage() {
     </Suspense>
   );
 }
-

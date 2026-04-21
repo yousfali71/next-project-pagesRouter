@@ -109,7 +109,7 @@ export default function Navbar() {
           <li className="pt-2">
             <Link
               href="/login"
-              onClick={() => setOpen(false)}
+              onClick={() => setIsMobileMenuOpen(false)}
               className="block rounded-lg bg-teal-600 px-3 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-black"
             >
               Login
@@ -120,4 +120,3 @@ export default function Navbar() {
     </header>
   );
 }
-

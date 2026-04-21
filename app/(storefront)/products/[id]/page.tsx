@@ -9,10 +9,6 @@ import {
   updateExistingProduct,
   deleteProductById,
 } from "@/lib/product-service";
-import {
-  retrieveCachedProduct,
-  removeCachedProduct,
-} from "@/lib/session-product-cache";
 import { Product } from "@/types/product";
 import { MESSAGES } from "@/lib/constants";
 
@@ -25,7 +21,7 @@ type ProductEditData = {
 /**
  * Product Detail Page
  * Displays full product information with edit and delete capabilities
- * Handles both API products and session-cached products
+ * Uses MongoDB for persistent storage
  */
 export default function ProductDetailPage() {
   const { id } = useParams();
@@ -35,7 +31,6 @@ export default function ProductDetailPage() {
   const [product, setProduct] = useState<Product | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const [isSessionCached, setIsSessionCached] = useState(false);
 
   // Edit state
   const [isEditMode, setIsEditMode] = useState(false);
@@ -47,13 +42,12 @@ export default function ProductDetailPage() {
   const [actionError, setActionError] = useState<string | null>(null);
 
   /**
-   * Fetches product data on mount
-   * First tries API, then falls back to session cache
+   * Fetches product data on mount from MongoDB
    */
   useEffect(() => {
-    const productId = Number(id);
+    const productId = String(id);
 
-    if (Number.isNaN(productId)) {
+    if (!productId) {
       setFetchError("Invalid product ID");
       setIsLoading(false);
       return;
@@ -64,7 +58,6 @@ export default function ProductDetailPage() {
 
     async function loadProductData() {
       try {
-        // Try to fetch from API first
         const apiProduct = await fetchProductById(productId);
         if (isCancelled) return;
 
@@ -75,22 +68,6 @@ export default function ProductDetailPage() {
             price: apiProduct.price,
             description: apiProduct.description,
           });
-          setIsSessionCached(false);
-          return;
-        }
-
-        // Fallback to session cache for newly created products
-        const cachedProduct = retrieveCachedProduct(productId);
-        if (isCancelled) return;
-
-        if (cachedProduct) {
-          setProduct(cachedProduct);
-          setEditFormData({
-            title: cachedProduct.title,
-            price: cachedProduct.price,
-            description: cachedProduct.description,
-          });
-          setIsSessionCached(true);
           return;
         }
 
@@ -115,17 +92,14 @@ export default function ProductDetailPage() {
   }, [id]);
 
   /**
-   * Handles product update via API
-   * Only available for API products, not session-cached ones
+   * Handles product update via MongoDB API
    */
   const handleProductUpdate = async () => {
-    if (isSessionCached) return;
-
     setActionError(null);
 
     try {
       const updatedProduct = await updateExistingProduct(
-        Number(id),
+        String(id),
         editFormData,
       );
       setProduct((previous) =>
@@ -139,23 +113,15 @@ export default function ProductDetailPage() {
   };
 
   /**
-   * Handles product deletion
-   * For session-cached products, removes from cache
-   * For API products, calls delete endpoint
+   * Handles product deletion from MongoDB
    */
   const handleProductDelete = async () => {
     if (!confirm(MESSAGES.productDeleteConfirm)) return;
 
-    if (isSessionCached) {
-      removeCachedProduct(Number(id));
-      router.push("/products");
-      return;
-    }
-
     setActionError(null);
 
     try {
-      await deleteProductById(Number(id));
+      await deleteProductById(String(id));
       alert(MESSAGES.productDeleted);
       router.push("/products");
     } catch (error) {
@@ -181,8 +147,7 @@ export default function ProductDetailPage() {
           {fetchError ?? MESSAGES.productNotFound}
         </p>
         <p className="mt-3 text-sm text-neutral-600">
-          New products from &quot;Add product&quot; are not stored by DummyJSON
-          for GET — add again and we&apos;ll keep a copy in your session.
+          This product could not be found in the database.
         </p>
         <Link
           href="/products"
@@ -204,16 +169,6 @@ export default function ProductDetailPage() {
       >
         ← Back
       </button>
-
-      {/* Session-only warning banner */}
-      {isSessionCached && (
-        <div className="mb-6 rounded-xl border border-teal-600/30 bg-teal-600/10 px-4 py-3 text-sm text-neutral-800">
-          <strong className="text-teal-600">
-            {MESSAGES.sessionOnlyProduct}.
-          </strong>{" "}
-          {MESSAGES.sessionOnlyExplanation}
-        </div>
-      )}
 
       {/* Action error banner */}
       {actionError && (
@@ -237,7 +192,7 @@ export default function ProductDetailPage() {
 
         {/* Product info and actions */}
         <div className="flex flex-col gap-4">
-          {isEditMode && !isSessionCached ? (
+          {isEditMode ? (
             // Edit form
             <div className="flex flex-col gap-4">
               <input
@@ -306,21 +261,19 @@ export default function ProductDetailPage() {
                 ⭐ {product.rating ?? "—"} · Stock: {product.stock ?? "—"}
               </p>
               <div className="flex flex-wrap gap-3 pt-2">
-                {!isSessionCached && (
-                  <button
-                    type="button"
-                    onClick={() => setIsEditMode(true)}
-                    className="rounded-lg bg-neutral-950 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-600"
-                  >
-                    Edit
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => setIsEditMode(true)}
+                  className="rounded-lg bg-neutral-950 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-600"
+                >
+                  Edit
+                </button>
                 <button
                   type="button"
                   onClick={handleProductDelete}
                   className="rounded-lg bg-teal-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-black"
                 >
-                  {isSessionCached ? "Remove from session" : "Delete"}
+                  Delete
                 </button>
               </div>
             </>

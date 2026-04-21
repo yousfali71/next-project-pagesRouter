@@ -1,52 +1,58 @@
 /**
  * Product Service
- * Handles all product-related API operations with DummyJSON
- *
- * Note: DummyJSON is a mock API. Created products via POST /add
- * receive IDs but are not retrievable via GET afterward.
+ * Handles all product-related API operations with MongoDB
  */
 
 import type { Product } from "@/types/product";
-import { PRODUCTS_API_BASE_URL, PRODUCTS_FETCH_LIMIT } from "./constants";
 
 export type CreateProductInput = {
   title: string;
-  description?: string;
-  price?: number;
+  description: string;
+  price: number;
   brand?: string;
-  category?: string;
+  category: string;
   stock?: number;
   thumbnail?: string;
+  images?: string[];
 };
 
-export type UpdateProductInput = Partial<Product>;
+export type UpdateProductInput = Partial<CreateProductInput>;
 
 /**
  * Fetches all products from the API
- * Uses cache to avoid unnecessary refetches
+ * Supports optional filtering by category and search
  */
-export async function fetchAllProducts() {
-  const url = `${PRODUCTS_API_BASE_URL}?limit=${PRODUCTS_FETCH_LIMIT}`;
-  const response = await fetch(url, { cache: "force-cache" });
+export async function fetchAllProducts(options?: {
+  category?: string;
+  search?: string;
+  limit?: number;
+  skip?: number;
+}) {
+  const params = new URLSearchParams();
+
+  if (options?.category) params.append("category", options.category);
+  if (options?.search) params.append("search", options.search);
+  if (options?.limit) params.append("limit", options.limit.toString());
+  if (options?.skip) params.append("skip", options.skip.toString());
+
+  const url = `/api/products${params.toString() ? `?${params.toString()}` : ""}`;
+  const response = await fetch(url, { cache: "no-store" });
 
   if (!response.ok) {
     throw new Error("Failed to fetch products from the server");
   }
 
-  return response.json() as Promise<{ products: Product[] }>;
+  return response.json() as Promise<{ products: Product[]; total: number }>;
 }
 
 /**
  * Fetches a single product by ID
  * Returns null if product is not found (404)
- *
- * Note: Products created via the API are not stored permanently
- * and won't be retrievable via this method
  */
 export async function fetchProductById(
-  productId: number,
+  productId: string,
 ): Promise<Product | null> {
-  const response = await fetch(`${PRODUCTS_API_BASE_URL}/${productId}`, {
+  const response = await fetch(`/api/products/${productId}`, {
     cache: "no-store",
   });
 
@@ -58,28 +64,28 @@ export async function fetchProductById(
     throw new Error(`Failed to fetch product with ID ${productId}`);
   }
 
-  return response.json() as Promise<Product>;
+  const data = await response.json();
+  return data.product as Product;
 }
 
 /**
  * Creates a new product via the API
- * Returns the created product with an assigned ID
- *
- * Important: The product is NOT permanently stored by DummyJSON
- * Use session storage to persist it locally for the current session
+ * Returns the created product with MongoDB _id
  */
 export async function createNewProduct(productData: CreateProductInput) {
-  const response = await fetch(`${PRODUCTS_API_BASE_URL}/add`, {
+  const response = await fetch(`/api/products`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(productData),
   });
 
   if (!response.ok) {
-    throw new Error("Failed to create product");
+    const error = await response.json();
+    throw new Error(error.message || "Failed to create product");
   }
 
-  return response.json() as Promise<Product>;
+  const data = await response.json();
+  return data.product as Product;
 }
 
 /**
@@ -87,35 +93,41 @@ export async function createNewProduct(productData: CreateProductInput) {
  * Uses PUT method to update product fields
  */
 export async function updateExistingProduct(
-  productId: number,
+  productId: string,
   updates: UpdateProductInput,
 ) {
-  const response = await fetch(`${PRODUCTS_API_BASE_URL}/${productId}`, {
+  const response = await fetch(`/api/products/${productId}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(updates),
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to update product with ID ${productId}`);
+    const error = await response.json();
+    throw new Error(
+      error.message || `Failed to update product with ID ${productId}`,
+    );
   }
 
-  return response.json() as Promise<Product>;
+  const data = await response.json();
+  return data.product as Product;
 }
 
 /**
  * Deletes a product by ID
- * Returns the deleted product info with isDeleted flag
+ * Returns success message
  */
-export async function deleteProductById(productId: number) {
-  const response = await fetch(`${PRODUCTS_API_BASE_URL}/${productId}`, {
+export async function deleteProductById(productId: string) {
+  const response = await fetch(`/api/products/${productId}`, {
     method: "DELETE",
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to delete product with ID ${productId}`);
+    const error = await response.json();
+    throw new Error(
+      error.message || `Failed to delete product with ID ${productId}`,
+    );
   }
 
-  return response.json() as Promise<Product & { isDeleted?: boolean }>;
+  return response.json();
 }
-

@@ -3,11 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { createNewProduct, type CreateProductInput } from "@/lib/product-service";
-import { cacheProductInSession } from "@/lib/session-product-cache";
-import { DEFAULT_PRODUCT_THUMBNAIL } from "@/lib/constants";
+import {
+  createNewProduct,
+  type CreateProductInput,
+} from "@/lib/product-service";
 
-const DEFAULT_PRODUCT_THUMBNAIL = "https://cdn.dummyjson.com/product-images/1/thumbnail.jpg";
+const DEFAULT_PRODUCT_THUMBNAIL =
+  "https://via.placeholder.com/300x300?text=No+Image";
 
 const initialFormData: CreateProductInput = {
   title: "",
@@ -21,8 +23,7 @@ const initialFormData: CreateProductInput = {
 
 /**
  * New Product Page
- * Form for creating a new product
- * Note: DummyJSON creates products but doesn't persist them permanently
+ * Form for creating a new product in MongoDB
  */
 export default function NewProductPage() {
   const router = useRouter();
@@ -31,13 +32,12 @@ export default function NewProductPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleInputChange = (
-    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value, type } = event.target;
-    const processedValue = type === "number" 
-      ? (value === "" ? 0 : Number(value)) 
-      : value;
-      
+    const processedValue =
+      type === "number" ? (value === "" ? 0 : Number(value)) : value;
+
     setFormData((previous) => ({
       ...previous,
       [name]: processedValue,
@@ -46,35 +46,37 @@ export default function NewProductPage() {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    
+
     // Validate required fields
     if (!formData.title.trim()) {
       setErrorMessage("Product title is required.");
       return;
     }
-    
+
+    if (!formData.category.trim()) {
+      setErrorMessage("Product category is required.");
+      return;
+    }
+
     setErrorMessage(null);
     setIsSaving(true);
-    
+
     try {
       const createdProduct = await createNewProduct({
         title: formData.title.trim(),
-        description: formData.description?.trim() || "—",
-        price: formData.price,
-        brand: formData.brand?.trim() || "Generic",
-        category: formData.category?.trim() || "general",
-        stock: formData.stock,
+        description: formData.description.trim() || "No description provided",
+        price: formData.price || 0,
+        brand: formData.brand?.trim(),
+        category: formData.category.trim(),
+        stock: formData.stock || 0,
         thumbnail: formData.thumbnail?.trim() || DEFAULT_PRODUCT_THUMBNAIL,
       });
-      
-      // Cache the product locally since DummyJSON won't persist it
-      cacheProductInSession(createdProduct);
-      
+
       // Navigate to the product detail page
-      router.push(`/products/${createdProduct.id}`);
+      router.push(`/products/${createdProduct._id}`);
     } catch (err) {
       setErrorMessage(
-        err instanceof Error ? err.message : "Could not create product."
+        err instanceof Error ? err.message : "Could not create product.",
       );
     } finally {
       setIsSaving(false);
@@ -175,4 +177,3 @@ export default function NewProductPage() {
     </div>
   );
 }
-
