@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import {
   createNewProduct,
@@ -24,12 +25,36 @@ const initialFormData: CreateProductInput = {
 /**
  * New Product Page
  * Form for creating a new product in MongoDB
+ * Requires authentication
  */
 export default function NewProductPage() {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [formData, setFormData] = useState<CreateProductInput>(initialFormData);
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login");
+    }
+  }, [status, router]);
+
+  // Show loading while checking authentication
+  if (status === "loading") {
+    return (
+      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 px-4">
+        <span className="h-10 w-10 animate-spin rounded-full border-2 border-neutral-200 border-t-teal-600" />
+        <p className="text-sm font-medium text-neutral-500">Loading...</p>
+      </div>
+    );
+  }
+
+  // Don't render form if not authenticated
+  if (!session) {
+    return null;
+  }
 
   const handleInputChange = (
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,

@@ -2,6 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { Product } from "@/types/product";
 import ProductCard from "@/components/ProductCard";
@@ -11,6 +12,7 @@ import { MESSAGES } from "@/lib/constants";
  * Products Listing Page
  * Displays all products with filtering by category and brand
  * Uses URL search params to maintain filter state
+ * Non-authenticated users see only 4 products
  */
 
 /**
@@ -21,11 +23,13 @@ function ProductsGridView() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { data: session } = useSession();
 
   // State management
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Extract filter values from URL params
   const activeCategory = searchParams.get("category") ?? "";
@@ -67,6 +71,7 @@ function ProductsGridView() {
       })
       .then((data) => {
         setProducts(data.products as Product[]);
+        setIsAuthenticated(data.isAuthenticated || false);
         setIsLoading(false);
       })
       .catch((error: Error) => {
@@ -140,6 +145,40 @@ function ProductsGridView() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
+      {/* Authentication notice for non-logged-in users */}
+      {!isAuthenticated && (
+        <div className="mb-8 rounded-lg border border-teal-200 bg-teal-50 p-4 yh-animate-up">
+          <div className="flex items-start gap-3">
+            <svg
+              className="mt-0.5 h-5 w-5 shrink-0 text-teal-600"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-teal-900">
+                Limited Preview Mode
+              </h3>
+              <p className="mt-1 text-sm text-teal-700">
+                You're viewing only 4 products.{" "}
+                <Link
+                  href="/login"
+                  className="font-semibold underline hover:text-teal-900"
+                >
+                  Sign in
+                </Link>{" "}
+                to see all products and add/edit items.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Page header with add button */}
       <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="yh-animate-up">
@@ -150,12 +189,14 @@ function ProductsGridView() {
             Browse and filter our complete product catalog
           </p>
         </div>
-        <Link
-          href="/products/new"
-          className="inline-flex w-fit items-center justify-center rounded-lg bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-teal-600/25 transition hover:bg-black"
-        >
-          + Add product
-        </Link>
+        {session?.user && (
+          <Link
+            href="/products/new"
+            className="inline-flex w-fit items-center justify-center rounded-lg bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-teal-600/25 transition hover:bg-black"
+          >
+            + Add product
+          </Link>
+        )}
       </div>
 
       {/* Filter controls */}

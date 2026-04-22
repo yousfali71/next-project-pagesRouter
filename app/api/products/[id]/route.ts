@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import Product from "@/models/Product";
+import { isAuthenticated } from "@/lib/auth-utils";
 
 /**
  * GET /api/products/[id] - Fetch a single product by ID
+ * Public route - no authentication required
  */
 export async function GET(
   request: NextRequest,
@@ -32,12 +34,25 @@ export async function GET(
 
 /**
  * PUT /api/products/[id] - Update a product
+ * Protected route - requires authentication
  */
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    // Check authentication
+    const authenticated = await isAuthenticated();
+    if (!authenticated) {
+      return NextResponse.json(
+        {
+          error: "Unauthorized",
+          message: "You must be logged in to update products",
+        },
+        { status: 401 },
+      );
+    }
+
     await connectToDatabase();
 
     const { id } = await params;
@@ -68,12 +83,25 @@ export async function PUT(
 
 /**
  * DELETE /api/products/[id] - Delete a product
+ * Protected route - requires authentication
  */
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    // Check authentication
+    const authenticated = await isAuthenticated();
+    if (!authenticated) {
+      return NextResponse.json(
+        {
+          error: "Unauthorized",
+          message: "You must be logged in to delete products",
+        },
+        { status: 401 },
+      );
+    }
+
     await connectToDatabase();
 
     const { id } = await params;

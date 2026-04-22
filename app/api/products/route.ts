@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import Product from "@/models/Product";
+import { isAuthenticated } from "@/lib/auth-utils";
 
 /**
  * GET /api/products - Fetch all products with optional filtering
+ * Public route - no authentication required
+ * Non-authenticated users see only 4 products
  */
 export async function GET(request: NextRequest) {
   try {
@@ -12,8 +15,16 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const category = searchParams.get("category");
     const search = searchParams.get("search");
-    const limit = parseInt(searchParams.get("limit") || "0");
+    let limit = parseInt(searchParams.get("limit") || "0");
     const skip = parseInt(searchParams.get("skip") || "0");
+
+    // Check if user is authenticated
+    const authenticated = await isAuthenticated();
+
+    // Limit to 4 products for non-authenticated users
+    if (!authenticated) {
+      limit = 4;
+    }
 
     // Build query filter
     const filter: any = {};
@@ -43,6 +54,7 @@ export async function GET(request: NextRequest) {
       total,
       limit,
       skip,
+      isAuthenticated: authenticated,
     });
   } catch (error: any) {
     console.error("Error fetching products:", error);
@@ -55,9 +67,22 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/products - Create a new product
+ * Protected route - requires authentication
  */
 export async function POST(request: NextRequest) {
   try {
+    // Check authentication
+    const authenticated = await isAuthenticated();
+    if (!authenticated) {
+      return NextResponse.json(
+        {
+          error: "Unauthorized",
+          message: "You must be logged in to create products",
+        },
+        { status: 401 },
+      );
+    }
+
     await connectToDatabase();
 
     const body = await request.json();

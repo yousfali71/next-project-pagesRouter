@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { useSession, signOut } from "next-auth/react";
 import Logo from "./Logo";
 import { MAIN_NAV_LINKS, ANIMATION_DELAYS } from "@/lib/constants";
 
@@ -10,10 +11,13 @@ import { MAIN_NAV_LINKS, ANIMATION_DELAYS } from "@/lib/constants";
  * Navigation Bar
  * Sticky header with responsive mobile menu
  * Highlights active page based on current pathname
+ * Shows login/logout based on authentication status
  */
 export default function Navbar() {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { data: session, status } = useSession();
+  const isLoading = status === "loading";
 
   // Navigation link styling
   const baseLinkStyles =
@@ -43,12 +47,38 @@ export default function Navbar() {
         </ul>
 
         <div className="flex items-center gap-3">
-          <Link
-            href="/login"
-            className="hidden rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-teal-600/30 transition duration-200 hover:bg-black hover:shadow-black/25 sm:inline-flex"
-          >
-            Login
-          </Link>
+          {!isLoading && (
+            <>
+              {session?.user ? (
+                <div className="hidden items-center gap-3 sm:flex">
+                  {/* User Avatar */}
+                  <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-teal-600 text-sm font-bold text-white">
+                      {session.user.name
+                        ? session.user.name.charAt(0).toUpperCase()
+                        : session.user.email?.charAt(0).toUpperCase() || "U"}
+                    </div>
+                    <span className="text-sm font-medium text-neutral-200">
+                      {session.user.name || session.user.email}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => signOut({ callbackUrl: "/" })}
+                    className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-teal-600/30 transition duration-200 hover:bg-black hover:shadow-black/25"
+                  >
+                    Logout
+                  </button>
+                </div>
+              ) : (
+                <Link
+                  href="/login"
+                  className="hidden rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-teal-600/30 transition duration-200 hover:bg-black hover:shadow-black/25 sm:inline-flex"
+                >
+                  Login
+                </Link>
+              )}
+            </>
+          )}
 
           <button
             type="button"
@@ -107,13 +137,37 @@ export default function Navbar() {
             </li>
           ))}
           <li className="pt-2">
-            <Link
-              href="/login"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="block rounded-lg bg-teal-600 px-3 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-black"
-            >
-              Login
-            </Link>
+            {session?.user ? (
+              <>
+                <div className="mb-2 flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-teal-600 text-sm font-bold text-white">
+                    {session.user.name
+                      ? session.user.name.charAt(0).toUpperCase()
+                      : session.user.email?.charAt(0).toUpperCase() || "U"}
+                  </div>
+                  <span className="text-sm font-medium text-neutral-200">
+                    {session.user.name || session.user.email}
+                  </span>
+                </div>
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    signOut({ callbackUrl: "/" });
+                  }}
+                  className="block w-full rounded-lg bg-teal-600 px-3 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-black"
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <Link
+                href="/login"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block rounded-lg bg-teal-600 px-3 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-black"
+              >
+                Login
+              </Link>
+            )}
           </li>
         </ul>
       </div>
